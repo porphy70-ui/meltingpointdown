@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>어는점 내림 시뮬레이터</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--ink:#14213d;--muted:#5b6b82;--line:#d3dbe8;--pri:#1d5fd6;--pri-d:#1749a8;--ok:#13804a;--warn:#b45309;--bad:#c0262d;--soft:#eaf1fd}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:'Pretendard','Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--ink);font-size:18px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+header{background:#fff;border-bottom:2px solid var(--line);position:sticky;top:0;z-index:20}
+.hdr{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 16px}
+h1{margin:0;font-size:26px}
+h1 small{display:block;font-size:14px;font-weight:500;color:var(--muted)}
+.hdr-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hdr-right input{font-size:16px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;width:150px}
+.stepper{list-style:none;display:flex;gap:6px;margin:0 auto;padding:0 16px 10px;max-width:1180px;overflow-x:auto}
+.stepper li{flex:1;min-width:110px;text-align:center;padding:7px 4px;border-radius:10px;background:#e8edf5;color:var(--muted);font-size:15px;font-weight:700;white-space:nowrap}
+.stepper li.done{background:#d9f0e3;color:var(--ok)}
+.stepper li.active{background:var(--pri);color:#fff}
+main{padding:16px 0 60px}
+.card{scroll-margin-top:150px;background:var(--card);border:2px solid var(--line);border-radius:18px;padding:18px 20px;margin:0 0 16px;position:relative}
+.card.locked{opacity:.4;pointer-events:none;filter:grayscale(.7)}
+.card.locked::after{content:'앞 단계를 먼저 마치세요';position:absolute;right:18px;top:14px;font-size:14px;font-weight:700;color:var(--muted)}
+.card h2{margin:0 0 10px;font-size:23px;display:flex;align-items:center;gap:10px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--pri);color:#fff;font-size:19px}
+.grid2{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:20px;align-items:start}
+.grid3{display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:20px;align-items:start}
+@media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+.figure{background:#f7f9fc;border:2px solid var(--line);border-radius:14px;padding:8px;text-align:center}
+.figure svg{width:100%;height:auto;max-height:380px}
+.lead{margin:0 0 10px}
+.notes{margin:0 0 14px;padding-left:20px;color:var(--muted);font-size:16px}
+.btn{font:inherit;font-size:20px;font-weight:800;min-height:58px;padding:0 24px;border-radius:14px;border:3px solid var(--pri);background:var(--pri);color:#fff;cursor:pointer;touch-action:manipulation}
+.btn:hover:not(:disabled){background:var(--pri-d);border-color:var(--pri-d)}
+.btn:disabled{background:#cfd7e4;border-color:#cfd7e4;color:#fff;cursor:not-allowed}
+.btn.big{min-height:72px;font-size:25px;padding:0 34px}
+.btn.sec{background:#fff;color:var(--pri)}
+.btn.sec:hover:not(:disabled){background:var(--soft);color:var(--pri-d)}
+.btn.sec:disabled{background:#f1f4f9;color:#a5afbf;border-color:#cfd7e4}
+.btn.ghost{min-height:44px;font-size:16px;padding:0 14px;background:#fff;color:var(--muted);border-color:var(--line)}
+.btn.warn{background:#fff;color:var(--warn);border-color:var(--warn)}
+.btn.sq{min-width:76px;padding:0 10px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+.msg{margin:10px 0;padding:10px 14px;border-radius:12px;background:var(--soft);border:2px solid #c9dafa;font-size:17px}
+.msg.ok{background:#e6f6ee;border-color:#b6e2c9}
+.msg.warn{background:#fff4e0;border-color:#f3d39b}
+.msg.bad{background:#fdeaea;border-color:#f3b8bb}
+.massbox{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.massbox input[type=number]{font:inherit;font-size:30px;font-weight:800;width:150px;padding:6px 10px;border:3px solid var(--line);border-radius:12px;text-align:right}
+.massbox input[type=number]:focus,.mwin:focus{outline:none;border-color:var(--pri)}
+input[type=range]{width:100%;height:36px;accent-color:var(--pri)}
+.speed .btn{min-height:46px;font-size:17px;padding:0 14px}
+.speed .btn.on{background:var(--pri);color:#fff}
+.readouts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.ro{background:#f7f9fc;border:2px solid var(--line);border-radius:12px;padding:6px 10px;text-align:left}
+.ro b{display:block;font-size:13px;color:var(--muted);font-weight:700}
+.ro span{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.chartbox{position:relative;border:2px solid var(--line);border-radius:14px;background:#fff}
+#chart{width:100%;height:380px;display:block;touch-action:pan-y}
+.legend{font-size:15px;color:var(--muted);margin:6px 2px 0}
+.legend i{display:inline-block;width:22px;height:0;border-top:3px solid var(--pri);vertical-align:middle;margin-right:5px}
+.legend i.r{border-top:3px dashed var(--bad)}
+.legend i.g{border-top:3px dashed #8795aa}
+table.t{border-collapse:collapse;width:100%;font-size:19px}
+table.t th,table.t td{border:2px solid var(--line);padding:10px 14px;text-align:left}
+table.t th{background:#eef3fb;width:46%;font-weight:700}
+table.t td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+table.t tr.hi td,table.t tr.hi th{background:#fff4d6}
+table.t tr.ans td,table.t tr.ans th{background:#e6f6ee}
+table.cand th{width:auto;text-align:center;font-size:16px}
+table.cand td{font-size:17px;padding:7px 10px}
+.mwin{font:inherit;font-size:28px;font-weight:800;width:100%;max-width:230px;padding:8px 12px;border:3px solid var(--pri);border-radius:12px;text-align:right;background:#fffef4}
+.mwin:read-only{background:#f1f4f9;border-color:var(--line)}
+details{margin:10px 0}
+summary{cursor:pointer;font-weight:700;color:var(--pri);font-size:17px}
+.formula{background:#f7f9fc;border-left:5px solid var(--pri);padding:8px 14px;margin:8px 0;font-size:17px}
+.teacher{background:#fff;border:2px dashed var(--line);border-radius:14px;padding:10px 16px;color:var(--muted)}
+.teacher label{display:block;margin:8px 0;font-size:16px}
+.teacher select,.teacher input[type=password]{font:inherit;font-size:16px;padding:6px 8px;border:2px solid var(--line);border-radius:8px}
+.tag{display:inline-block;padding:2px 10px;border-radius:8px;font-size:14px;font-weight:800;background:#e8edf5;color:var(--muted)}
+.tag.ans{background:#d9f0e3;color:var(--ok)}
+.tag.near{background:#ffe9b3;color:#7a4b00}
+svg text{font-family:'Pretendard','Noto Sans KR','Malgun Gothic',sans-serif}
+.pile{transition:opacity 2.4s ease,transform 2.4s ease;transform-origin:140px 248px}
+.pile.melt{opacity:0;transform:scaleY(.15)}
+.pdot{animation:drift 2.4s ease-out forwards}
+@keyframes drift{0%{opacity:.9;transform:translateY(0)}100%{opacity:0;transform:translateY(-110px)}}
+#beakerG{transition:transform 1.4s ease-in-out}
+#therm{transition:transform .9s ease,opacity .9s ease}
+.big-result{font-size:24px;font-weight:800}
+@media print{header,.btn,.teacher,.card.locked,#s1,#s2,#s3{display:none!important}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <h1>어는점 내림 시뮬레이터<small>미지 시료의 분자량을 구해 보자</small></h1>
+    <div class="hdr-right">
+      <label>이름 <input id="stuName" placeholder="이름(선택)" autocomplete="off"></label>
+      <button class="btn ghost" id="btnReset">처음부터 다시</button>
+    </div>
+  </div>
+  <ol class="stepper" id="stepper">
+    <li data-s="1">① 시약병 준비</li><li data-s="2">② 질량 측정</li><li data-s="3">③ 냉각 실험</li><li data-s="4">④ 결과 기록</li><li data-s="5">⑤ 결과 비교</li>
+  </ol>
+</header>
+
+<main class="wrap">
+
+<!-- 1단계 -->
+<section class="card" id="s1">
+  <h2><span class="num">1</span>미지의 고체 시약병 준비하기</h2>
+  <div class="grid2">
+    <div class="figure">
+      <svg id="bottleSvg" viewBox="0 0 200 250" role="img" aria-label="시약병">
+        <g id="bottleG" opacity=".35">
+          <rect x="70" y="12" width="60" height="28" rx="6" fill="#1d5fd6"/>
+          <rect x="78" y="40" width="44" height="22" fill="#7a4a1d"/>
+          <rect x="40" y="60" width="120" height="172" rx="22" fill="#8a5420"/>
+          <rect x="48" y="70" width="10" height="150" rx="5" fill="#fff" opacity=".18"/>
+          <rect x="52" y="104" width="96" height="100" rx="6" fill="#fff" stroke="#cbbfa8" stroke-width="2"/>
+          <text x="100" y="130" text-anchor="middle" font-size="16" font-weight="700" fill="#14213d">미지 시료</text>
+          <text id="bottleCode" x="100" y="164" text-anchor="middle" font-size="26" font-weight="800" fill="#1d5fd6">K-???</text>
+          <text x="100" y="190" text-anchor="middle" font-size="13" fill="#5b6b82">고체 시약</text>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <p class="lead">미지의 고체 물질이 들어 있는 시약병을 준비합니다. 병에는 <b>번호</b>만 적혀 있습니다. 물질의 이름과 분자량은 실험이 끝난 뒤에 확인합니다.</p>
+      <ul class="notes">
+        <li>이 시료는 물에 녹아도 이온으로 나뉘지 않는 물질(비전해질)입니다.</li>
+        <li>물의 몰랄 어는점 내림 상수는 K<sub>f</sub> = 1.86 °C·kg/mol 입니다.</li>
+      </ul>
+      <button class="btn big" id="btnPrep">시약병 준비하기</button>
+      <div class="msg" id="msg1" hidden></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2단계 -->
+<section class="card locked" id="s2">
+  <h2><span class="num">2</span>저울로 시료의 질량 재기</h2>
+  <div class="grid2">
+    <div class="figure">
+      <svg id="scaleSvg" viewBox="0 0 280 316" role="img" aria-label="저울 위의 비커">
+        <defs><clipPath id="clip2"><path d="M52,30 L52,236 Q52,248 64,248 L216,248 Q228,248 228,236 L228,30 Z"/></clipPath></defs>
+        <g clip-path="url(#clip2)">
+          <rect x="52" y="92" width="176" height="160" fill="#cfe8fb"/>
+          <rect x="52" y="92" width="176" height="5" fill="#a9d2f2"/>
+          <g id="pile" class="pile"><path id="pile1" fill="#f1ece0" stroke="#b9b09a" stroke-width="2"/><path id="pile2" fill="#fffdf6" opacity=".8"/></g>
+          <g id="pdots"></g>
+        </g>
+        <path d="M50,30 L50,236 Q50,250 64,250 L216,250 Q230,250 230,236 L230,30" fill="none" stroke="#6b7a90" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M44,30 L50,30 M230,30 L236,30" stroke="#6b7a90" stroke-width="4" stroke-linecap="round"/>
+        <g stroke="#6b7a90" stroke-width="2"><line x1="200" y1="92" x2="228" y2="92"/><line x1="212" y1="140" x2="228" y2="140"/><line x1="212" y1="190" x2="228" y2="190"/></g>
+        <text x="130" y="122" text-anchor="middle" font-size="16" font-weight="700" fill="#2f6a9e">물 100 g</text>
+        <rect x="30" y="250" width="220" height="14" rx="3" fill="#9aa5b5"/>
+        <rect x="14" y="264" width="252" height="42" rx="9" fill="#2b3445"/>
+        <rect x="56" y="270" width="168" height="30" rx="4" fill="#cfe9c8"/>
+        <text id="lcd" x="214" y="293" text-anchor="end" font-size="24" font-weight="800" font-family="monospace" fill="#1d2b1d">100.00 g</text>
+      </svg>
+    </div>
+    <div>
+      <p class="lead">물 100 g이 든 비커가 저울 위에 있습니다. 저울의 <b>영점을 맞춘 뒤</b>, 시료를 넣으면서 저울의 눈금으로 질량을 확인하세요.</p>
+      <div class="row"><button class="btn" id="btnTare">영점 맞추기 (0.00 g)</button></div>
+      <div class="massbox">
+        <span><b>넣을 시료의 질량</b></span>
+        <input type="number" id="massInput" min="0" max="30" step="0.01" value="0" inputmode="decimal" aria-label="시료의 질량(g)"><b>g</b>
+      </div>
+      <input type="range" id="massSlider" min="0" max="30" step="0.1" value="0" aria-label="질량 조절 슬라이더">
+      <div class="row">
+        <button class="btn sec sq" data-d="-1">−1 g</button>
+        <button class="btn sec sq" data-d="-0.1">−0.1</button>
+        <button class="btn sec sq" data-d="0.1">+0.1</button>
+        <button class="btn sec sq" data-d="1">+1 g</button>
+      </div>
+      <div class="row"><button class="btn big" id="btnDissolve">시료 넣고 녹이기</button><button class="btn warn" id="btnRemass" hidden>질량 다시 정하기</button></div>
+      <div class="msg" id="msg2">먼저 [영점 맞추기]를 눌러 주세요.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 3단계 -->
+<section class="card locked" id="s3">
+  <h2><span class="num">3</span>온도계를 꽂고 냉각하기</h2>
+  <div class="grid3">
+    <div>
+      <div class="figure">
+        <svg id="bathSvg" viewBox="0 -45 300 385" role="img" aria-label="냉각 장치 속 비커와 온도계">
+          <defs>
+            <clipPath id="clip3"><path d="M72,120 L72,278 Q72,288 82,288 L218,288 Q228,288 228,278 L228,120 Z"/></clipPath>
+          </defs>
+          <rect x="20" y="215" width="260" height="115" rx="10" fill="#bfe0f5" stroke="#4a7ea8" stroke-width="3"/>
+          <g fill="#eaf6ff" stroke="#8fbbdc" stroke-width="1.5">
+            <rect x="32" y="226" width="26" height="22" rx="4" transform="rotate(-8 45 237)"/><rect x="236" y="230" width="28" height="22" rx="4" transform="rotate(10 250 241)"/>
+            <rect x="30" y="290" width="30" height="24" rx="4" transform="rotate(6 45 302)"/><rect x="238" y="288" width="26" height="26" rx="4" transform="rotate(-12 250 300)"/>
+            <rect x="46" y="258" width="22" height="20" rx="4"/><rect x="232" y="258" width="22" height="20" rx="4" transform="rotate(14 243 268)"/>
+          </g>
+          <g id="beakerG" style="transform:translate(0px,-85px)">
+            <g clip-path="url(#clip3)">
+              <rect x="72" y="160" width="156" height="130" fill="#cfe8fb"/>
+              <rect id="slush" x="72" y="160" width="156" height="130" fill="#ffffff" opacity="0"/>
+              <g id="crystals"></g>
+            </g>
+            <path d="M70,120 L70,278 Q70,290 82,290 L218,290 Q230,290 230,278 L230,120" fill="none" stroke="#6b7a90" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M64,120 L70,120 M230,120 L236,120" stroke="#6b7a90" stroke-width="4" stroke-linecap="round"/>
+            <g id="therm" style="transform:translate(0px,-40px);opacity:0">
+              <rect x="145" y="50" width="10" height="232" rx="5" fill="#fff" fill-opacity=".85" stroke="#6b7a90" stroke-width="2"/>
+              <circle cx="150" cy="277" r="9" fill="#e02424" stroke="#6b7a90" stroke-width="2"/>
+              <rect id="mercury" x="148" y="84" width="4" height="190" fill="#e02424"/>
+              <g id="tticks" stroke="#6b7a90" stroke-width="1.5" font-size="10" fill="#14213d"></g>
+            </g>
+          </g>
+          <rect x="20" y="215" width="260" height="115" rx="10" fill="#7fb8e3" opacity=".28"/>
+          <text x="150" y="322" text-anchor="middle" font-size="13" font-weight="700" fill="#14405f">냉각 장치 (얼음+소금, 약 −20 °C)</text>
+        </svg>
+      </div>
+      <div class="readouts">
+        <div class="ro"><b>온도계 눈금</b><span id="roT">25.00 °C</span></div>
+        <div class="ro"><b>경과 시간</b><span id="roTime">0분 00초</span></div>
+      </div>
+      <div class="msg" id="roState" style="margin-top:8px">먼저 [온도계 꽂고 냉각 장치에 넣기]를 누르세요.</div>
+    </div>
+    <div>
+      <div class="row">
+        <button class="btn" id="btnInsert">온도계 꽂고 냉각 장치에 넣기</button>
+        <button class="btn big" id="btnStart">냉각 시작</button>
+        <button class="btn sec" id="btnPause">일시정지</button>
+        <button class="btn sec" id="btnReplay">다시 냉각</button>
+      </div>
+      <div class="row speed" id="speedRow">
+        <b>시간 속도</b>
+        <button class="btn sec" data-sp="10">×10</button><button class="btn sec on" data-sp="30">×30</button><button class="btn sec" data-sp="90">×90</button>
+        <button class="btn sec" id="btnZoom">어는점 부근 확대</button>
+      </div>
+      <div class="chartbox"><canvas id="chart" aria-label="냉각 곡선 그래프"></canvas></div>
+      <div class="legend"><i></i>용액의 온도 &nbsp; <i class="g"></i>0 °C (순수한 물의 어는점) &nbsp; <i class="r"></i>용액의 어는점 &nbsp; (그래프 위에 마우스를 올리면 시간과 온도가 보입니다)</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4단계 -->
+<section class="card locked" id="s4">
+  <h2><span class="num">4</span>실험 결과 표에 분자량 기록하기</h2>
+  <p class="lead">아래 측정값을 이용해 시료의 분자량을 계산하고, 빈칸에 적은 뒤 [제출하기]를 누르세요.</p>
+  <div style="max-width:760px">
+    <table class="t" id="resTable">
+      <tbody>
+        <tr><th>넣어준 물질의 질량 (g)</th><td class="n" id="tMass">-</td></tr>
+        <tr><th>물의 질량 (g)</th><td class="n" id="tWater">100.00</td></tr>
+        <tr><th>용액의 어는점 (°C)</th><td class="n" id="tTf">-</td></tr>
+        <tr><th>몰랄 어는점 내림 상수 K<sub>f</sub> (°C·kg/mol)</th><td class="n">1.86</td></tr>
+        <tr><th>시료의 분자량 (g/mol)<br><small style="font-weight:500;color:var(--muted)">직접 계산해서 적기</small></th><td class="n"><input class="mwin" id="mwInput" type="number" step="0.01" min="0" inputmode="decimal" placeholder="여기에 입력" aria-label="분자량 입력"></td></tr>
+      </tbody>
+    </table>
+    <div class="msg warn" id="msg4" hidden></div>
+    <details>
+      <summary>계산 도움말 보기</summary>
+      <div class="formula">어는점 내림 ΔT<sub>f</sub> = (순수한 물의 어는점) − (용액의 어는점) = K<sub>f</sub> × m</div>
+      <div class="formula">몰랄 농도 m (mol/kg) = 용질의 몰수 ÷ 용매의 질량(kg)</div>
+      <div class="formula">용질의 몰수 = 용질의 질량(g) ÷ 분자량(g/mol)</div>
+    </details>
+    <div class="row"><button class="btn big" id="btnSubmit">제출하기</button><button class="btn warn" id="btnRedo4" hidden>질량을 바꿔 다시 측정하기</button></div>
+  </div>
+</section>
+
+<!-- 5단계 -->
+<section class="card locked" id="s5">
+  <h2><span class="num">5</span>제공한 물질과 제출한 값 비교하기</h2>
+  <div id="result5"></div>
+</section>
+
+<div class="teacher">
+  <details id="tdet">
+    <summary>교사용 설정</summary>
+    <div id="tLock" class="row"><label style="margin:0">비밀번호 <input type="password" id="pin" autocomplete="off" style="width:120px"></label><button class="btn ghost" id="btnPin">열기</button><span id="pinMsg"></span></div>
+    <div id="tBody" hidden>
+      <label>시료 지정 <select id="cfgSample"></select></label>
+      <label><input type="checkbox" id="cfgSc"> 과냉각 현상 넣기 (심화: 어는점보다 낮게 내려갔다가 올라옵니다)</label>
+      <label><input type="checkbox" id="cfgNoise"> 온도 측정 오차 넣기 (약 ±0.03 °C)</label>
+      <div class="row"><button class="btn ghost" id="btnSaveCfg">저장</button><button class="btn ghost" id="btnShowAns">현재 시약병 정답 보기</button><span id="cfgMsg"></span></div>
+      <p style="font-size:14px;margin:6px 0 0">저장한 시료 지정은 다음에 [시약병 준비하기]를 누를 때부터 적용됩니다. 과냉각·측정 오차는 다음 냉각부터 적용됩니다.</p>
+    </div>
+  </details>
+</div>
+</main>
+
+<script>
+'use strict';
+/* ===== 기본 설정 ===== */
+const TEACHER_PIN = '0511';           // 교사용 설정 비밀번호
+const KF = 1.86;                       // 물의 몰랄 어는점 내림 상수 (°C·kg/mol)
+const WATER_G = 100;                   // 물의 질량 (g)
+/* 후보 물질 12종 (어는점내림 후보물질.docx) */
+const CANDIDATES = [
+  {ko:'요소', en:'Urea', f:'CH4N2O', M:60.06},
+  {ko:'티오요소', en:'Thiourea', f:'CH4N2S', M:76.12},
+  {ko:'에리트리톨', en:'Erythritol', f:'C4H10O4', M:122.12},
+  {ko:'펜타에리트리톨', en:'Pentaerythritol', f:'C5H12O4', M:136.15},
+  {ko:'자일리톨', en:'Xylitol', f:'C5H12O5', M:152.15},
+  {ko:'람노스', en:'Rhamnose', f:'C6H12O5', M:164.16},
+  {ko:'포도당', en:'Glucose', f:'C6H12O6', M:180.16},
+  {ko:'카페인', en:'Caffeine', f:'C8H10N4O2', M:194.19},
+  {ko:'덱스판테놀', en:'Dexpanthenol', f:'C9H19NO4', M:205.25},
+  {ko:'N-아세틸글루코사민', en:'N-Acetylglucosamine', f:'C8H15NO6', M:221.21},
+  {ko:'자일로바이오스', en:'Xylobiose', f:'C10H18O9', M:282.24},
+  {ko:'수크로스(설탕)', en:'Sucrose', f:'C12H22O11', M:342.30}
+];
+
+// ==SIM-START==
+function gauss(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function round2(x){return Math.round(x*100)/100;}
+/* 몰랄 농도 m = (질량/분자량) / (물 kg),  어는점 내림 = Kf × m */
+function molality(massG, M){return (massG/M)/(WATER_G/1000);}
+/* 냉각 곡선 계산: 1초 간격 배열을 돌려준다 */
+function simulateCooling(o){
+  const dT0=Math.min(o.depression,18);   // 어는점 내림(양수)
+  const T0=25, Tb=-20, tau=240, Lf=334, cp=4.18, step=0.5, tauR=4, fEnd=0.35, tMax=2400;
+  const sc=o.supercool?(0.9+Math.random()*0.7):0;
+  const sd=o.noise?0.03:0;
+  const out={t:[],T:[],Td:[],f:[],dt:1,sc:sc};
+  let T=T0,t=0,f=0,state='liquid',k=0,tNuc=null;
+  const push=()=>{out.t.push(Math.round(t));out.T.push(T);out.f.push(f);out.Td.push(T+sd*gauss());};
+  push();
+  while(t<tMax){
+    if(state==='liquid'){
+      T=Tb+(T-Tb)*Math.exp(-step/tau);                 // 뉴턴 냉각
+      if(T<=-dT0-sc){state='freezing';tNuc=t;if(sc===0){T=-dT0;}else{f=cp*sc/Lf;}}
+    }else{
+      const Teq=-dT0/(1-f);                            // 얼음 비율 f 일 때 남은 용액의 어는점
+      T+=(Teq-T)*(1-Math.exp(-step/tauR));
+      const q=(cp*WATER_G/tau)*(T-Tb);                 // 냉각 장치로 빠져나가는 열 (W)
+      f+=q*step/(Lf*WATER_G);                          // 얼음이 되는 비율
+      if(f>=fEnd)break;
+    }
+    t+=step;k++;
+    if(k%2===0)push();
+  }
+  if(out.t[out.t.length-1]!==Math.round(t)||k%2!==0){push();}
+  out.tEnd=out.t[out.t.length-1];
+  out.Tf0=-dT0;
+  out.fEnd=fEnd;
+  out.tNuc=tNuc===null?out.tEnd:tNuc;
+  let iKnee=Math.min(Math.floor(out.tNuc),out.t.length-1);
+  for(let i=Math.floor(out.tNuc);i<out.T.length;i++){ if(out.T[i]>=-dT0*(1+out.f[i])-0.02){iKnee=i;break;} }
+  out.iKnee=iKnee;
+  let iMin=0;for(let i=0;i<out.T.length;i++){if(out.T[i]<out.T[iMin])iMin=i;}
+  out.iMin=iMin;
+  out.Tmin=Math.min.apply(null,out.Td);
+  out.TfRec=round2(-dT0+sd*gauss());
+  return out;
+}
+// ==SIM-END==
+
+/* ===== 도우미 ===== */
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+function fT(x,d){d=(d===undefined)?2:d;const s=Math.abs(x)<0.5*Math.pow(10,-d)?0:x;return (s<0?'−':'')+Math.abs(s).toFixed(d);}
+function fHtml(s){return s.replace(/(\d+)/g,'<sub>$1</sub>');}
+function mmss(t){const m=Math.floor(t/60),s=Math.floor(t%60);return m+'분 '+(s<10?'0':'')+s+'초';}
+
+/* ===== 상태 ===== */
+let CFG={sampleIdx:-1,supercool:false,noise:false};
+try{Object.assign(CFG,JSON.parse(localStorage.getItem('fpd_cfg')||'{}'));}catch(e){}
+const S={maxStep:1,sample:null,code:'',lastIdx:-1,tared:false,mass:0,locked:false,dissolved:false,thermIn:false,
+         started:false,playing:false,finished:false,speed:30,sim:null,pos:0,submitted:false,inBath:false,idx:0};
+const chart={zoom:false,hover:null,view:null};
+
+/* ===== 단계 표시 ===== */
+function updateStepper(){
+  document.querySelectorAll('#stepper li').forEach(li=>{
+    const n=+li.dataset.s;li.className=(n<S.maxStep)?'done':(n===S.maxStep?'active':'');
+  });
+  for(let n=2;n<=5;n++){$('s'+n).classList.toggle('locked',n>S.maxStep);}
+}
+function goStep(n,noScroll){
+  S.maxStep=Math.max(S.maxStep,n);updateStepper();syncUI();
+  if(!noScroll){setTimeout(()=>{$('s'+n).scrollIntoView({behavior:'smooth',block:'start'});},120);}
+}
+
+/* ===== 1단계: 시약병 ===== */
+function prepBottle(){
+  let idx;
+  if(CFG.sampleIdx>=0&&CFG.sampleIdx<CANDIDATES.length){idx=CFG.sampleIdx;}
+  else{do{idx=Math.floor(Math.random()*CANDIDATES.length);}while(idx===S.lastIdx&&CANDIDATES.length>1);}
+  S.lastIdx=idx;S.sample=CANDIDATES[idx];
+  S.code='K-'+(100+Math.floor(Math.random()*900));
+  $('bottleCode').textContent=S.code;$('bottleG').setAttribute('opacity','1');
+  const m=$('msg1');m.hidden=false;m.className='msg ok';
+  m.textContent='시약병 '+S.code+' 준비 완료! 이제 시료의 질량을 재 봅시다.';
+  goStep(2);
+}
+
+/* ===== 2단계: 저울 ===== */
+function drawPile(){
+  const show=S.tared&&S.mass>0&&!S.dissolved;
+  $('pile').style.display=show?'':'none';
+  if(!show)return;
+  const m=S.mass,cx=140,y0=247;
+  const w=Math.min(165,24+22*Math.sqrt(m)),h=Math.min(78,4+9*Math.sqrt(m));
+  $('pile1').setAttribute('d','M'+(cx-w/2)+','+y0+' Q'+cx+','+(y0-2*h)+' '+(cx+w/2)+','+y0+' Z');
+  const w2=w*0.55,h2=h*0.6;
+  $('pile2').setAttribute('d','M'+(cx-w2/2-6)+','+(y0-2)+' Q'+(cx-6)+','+(y0-2*h2)+' '+(cx+w2/2-6)+','+(y0-2)+' Z');
+}
+function updateScale(){
+  $('lcd').textContent=(S.tared?fT(S.mass).replace('−','-'):'100.00')+' g';
+  drawPile();syncUI();
+}
+function setMass(v,src){
+  if(isNaN(v))v=0;
+  v=Math.round(clamp(v,0,30)*100)/100;S.mass=v;
+  $('massSlider').value=v;
+  if(src!=='input')$('massInput').value=(Math.round(v*100)/100);
+  if(S.tared&&!S.locked){
+    $('msg2').className='msg';
+    $('msg2').textContent=v<1?'저울 눈금이 '+fT(v)+' g 입니다. 1 g 이상 넣어 보세요.':'저울 눈금이 '+fT(v)+' g 입니다. 원하는 질량이 되면 [시료 넣고 녹이기]를 누르세요.';
+  }
+  updateScale();
+}
+function doTare(){
+  S.tared=true;S.mass=0;$('massInput').value=0;$('massSlider').value=0;
+  $('msg2').className='msg ok';$('msg2').textContent='영점을 맞췄습니다(0.00 g). 이제 시료의 질량을 조절하세요.';
+  updateScale();
+}
+function particles(){
+  const g=$('pdots');g.innerHTML='';
+  for(let i=0;i<16;i++){
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',70+Math.random()*140);c.setAttribute('cy',230+Math.random()*14);c.setAttribute('r',2+Math.random()*2.5);
+    c.setAttribute('fill','#ffffff');c.setAttribute('stroke','#9fc3e2');c.setAttribute('class','pdot');
+    c.style.animationDelay=(Math.random()*0.8)+'s';g.appendChild(c);
+  }
+}
+function doDissolve(){
+  if(S.mass<1||S.locked)return;
+  S.locked=true;syncUI();
+  $('pile').classList.add('melt');particles();
+  $('msg2').className='msg';$('msg2').textContent='시료를 녹이는 중입니다… (유리 막대로 저어 줍니다)';
+  setTimeout(()=>{
+    S.dissolved=true;$('pile').classList.remove('melt');drawPile();
+    $('msg2').className='msg ok';
+    $('msg2').textContent='시료 '+fT(S.mass)+' g이 물 100 g에 모두 녹았습니다. 저울에 기록된 질량: '+fT(S.mass)+' g';
+    S.mass=round2(S.mass);
+    goStep(3);syncUI();
+  },2700);
+}
+
+/* ===== 3단계: 온도계와 냉각 ===== */
+const CR=[];(function(){let s=7;const r=()=>{s=(s*9301+49297)%233280;return s/233280;};
+  for(let i=0;i<30;i++){CR.push({x:82+r()*136,y:166+r()*116,a:6+r()*9,rot:r()*180});}})();
+function buildBath(){
+  const g=$('crystals');g.innerHTML='';
+  CR.forEach((c,i)=>{
+    const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    p.setAttribute('points','0,-'+c.a+' '+(c.a*0.6)+',0 0,'+c.a+' -'+(c.a*0.6)+',0');
+    p.setAttribute('transform','translate('+c.x+','+c.y+') rotate('+c.rot+')');
+    p.setAttribute('fill','#ffffff');p.setAttribute('stroke','#8fbbdc');p.setAttribute('stroke-width','1.2');p.setAttribute('opacity','0');
+    p.setAttribute('id','cr'+i);g.appendChild(p);
+  });
+  const t=$('tticks');t.innerHTML='';
+  [-20,-10,0,10,20,30].forEach(v=>{
+    const y=255-(v+20)/50*190;
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',155);l.setAttribute('x2',162);l.setAttribute('y1',y);l.setAttribute('y2',y);t.appendChild(l);
+    const x=document.createElementNS('http://www.w3.org/2000/svg','text');
+    x.setAttribute('x',165);x.setAttribute('y',y+3.5);x.setAttribute('stroke','none');x.textContent=v;t.appendChild(x);
+  });
+}
+function mercury(T){
+  const v=clamp(T,-20,30),y=255-(v+20)/50*190;
+  const m=$('mercury');m.setAttribute('y',y);m.setAttribute('height',Math.max(2,277-y));
+}
+function doInsert(){
+  if(!S.locked||!S.dissolved||S.thermIn)return;
+  const conc=molality(S.mass,S.sample.M);
+  S.sim=simulateCooling({depression:KF*conc,supercool:CFG.supercool,noise:CFG.noise});
+  S.pos=0;S.thermIn=true;S.started=false;S.finished=false;S.playing=false;
+  $('roState').className='msg';$('roState').textContent='온도계를 꽂았습니다. 비커를 냉각 장치에 넣는 중…';
+  const th=$('therm');th.style.transform='translate(0px,0px)';th.style.opacity='1';
+  setTimeout(()=>{$('beakerG').style.transform='translate(0px,0px)';},900);
+  setTimeout(()=>{
+    S.inBath=true;
+    $('roState').className='msg';$('roState').textContent='준비 완료! [냉각 시작]을 눌러 온도 변화를 관찰하세요.';syncUI();refreshCooling();
+  },2400);
+  syncUI();refreshCooling();
+}
+function doStart(){
+  if(!S.thermIn||S.started)return;
+  S.started=true;S.playing=true;syncUI();
+}
+function doPause(){
+  if(!S.started||S.finished)return;
+  S.playing=!S.playing;syncUI();
+}
+function doReplay(){
+  if(!S.sim||!S.finished)return;
+  S.pos=0;S.finished=false;S.started=true;S.playing=true;
+  chart.hover=null;syncUI();refreshCooling();
+}
+function stateText(i){
+  const s=S.sim;
+  if(!S.started&&i===0)return ['msg','준비 완료! [냉각 시작]을 눌러 온도 변화를 관찰하세요.'];
+  const t=s.t[i];
+  if(S.finished)return ['msg ok','냉각 끝! 그래프에서 꺾이는 점의 온도가 용액의 어는점입니다.'];
+  if(t<s.tNuc)return ['msg','용액이 액체 상태로 식어 가는 중입니다.'];
+  if(s.sc>0&&i<s.iKnee)return ['msg warn','과냉각: 어는점보다 낮아졌지만 아직 얼지 않았습니다. 얼음이 생기면 온도가 올라옵니다.'];
+  const r=Math.round(100*s.f[i]);
+  return ['msg warn','얼음이 생기는 중입니다 (얼음 비율 약 '+r+' %). 얼음이 늘수록 남은 용액이 진해져서 어는점이 계속 내려갑니다.'];
+}
+function refreshCooling(){
+  const s=S.sim;
+  if(!s){drawChart();return;}
+  const i=clamp(Math.floor(S.pos/s.dt),0,s.t.length-1);
+  S.idx=i;
+  mercury(s.Td[i]);
+  $('roT').textContent=fT(s.Td[i])+' °C';
+  $('roTime').textContent=mmss(s.t[i]);
+  const ratio=clamp(s.f[i]/s.fEnd,0,1);
+  $('slush').setAttribute('opacity',(ratio*0.55).toFixed(2));
+  for(let k=0;k<CR.length;k++){
+    const e=$('cr'+k);if(e)e.setAttribute('opacity',clamp(ratio*CR.length*1.1-k,0,1).toFixed(2));
+  }
+  if(S.inBath){
+    const st=stateText(i);$('roState').className=st[0];$('roState').textContent=st[1];
+  }
+  drawChart();
+}
+function onFinished(){
+  S.finished=true;S.playing=false;
+  $('tMass').textContent=fT(S.mass);
+  $('tTf').textContent=fT(S.sim.TfRec);
+  const dep=-S.sim.TfRec;
+  const m=$('msg4');
+  if(dep<0.5){
+    m.hidden=false;
+    m.textContent='어는점 내림이 '+fT(dep)+' °C로 작습니다. 이렇게 작으면 온도계 눈금의 오차가 결과에 크게 영향을 줄 수 있어요. 시료를 더 넣어 다시 측정해 볼 수도 있습니다.';
+    $('btnRedo4').hidden=false;
+  }else{m.hidden=true;$('btnRedo4').hidden=true;}
+  syncUI();
+  if(S.maxStep<4)goStep(4);
+}
+
+/* ===== 그래프 (캔버스) ===== */
+function niceStep(range,target){
+  const raw=range/target,p=Math.pow(10,Math.floor(Math.log10(raw))),m=raw/p;
+  return (m<1.5?1:m<3?2:m<7?5:10)*p;
+}
+const FONT='"Pretendard","Noto Sans KR","Malgun Gothic",sans-serif';
+function drawChart(){
+  const cv=$('chart');if(!cv)return;
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(!w||!h)return;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  const L=66,R=24,Tp=20,B=52,pw=w-L-R,ph=h-Tp-B;
+  const s=S.sim;
+  let xmin=0,xmax=600,ymin=-6,ymax=28;
+  if(s){
+    xmax=Math.max(120,Math.ceil((s.tEnd+5)/60)*60);ymin=s.Tmin-1.5;
+    if(chart.zoom){
+      const pad=Math.max(0.6,Math.abs(s.Tf0)*0.6,(s.Tf0-s.Tmin)*1.5);
+      xmin=Math.max(0,s.tNuc-90);ymax=s.Tf0+pad;ymin=s.Tmin-Math.max(0.25,pad*0.25);
+    }
+  }
+  const xOf=t=>L+(t-xmin)/(xmax-xmin)*pw,yOf=v=>Tp+(ymax-v)/(ymax-ymin)*ph;
+  chart.view={L:L,pw:pw,xmin:xmin,xmax:xmax};
+  ctx.font='14px '+FONT;ctx.lineWidth=1;
+  // 격자와 눈금
+  const ys=niceStep(ymax-ymin,7),dec=ys>=1?0:(ys>=0.1?1:2);
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let i=0;;i++){
+    const v=Math.ceil(ymin/ys)*ys+i*ys;if(v>ymax+1e-9)break;
+    const y=yOf(v);ctx.strokeStyle='#e3e9f2';ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(L+pw,y);ctx.stroke();
+    ctx.fillStyle='#5b6b82';ctx.fillText(fT(v,dec),L-8,y);
+  }
+  const xs=niceStep((xmax-xmin)/60,8)*60;
+  ctx.textAlign='center';ctx.textBaseline='top';
+  for(let i=0;;i++){
+    const t=Math.ceil(xmin/xs)*xs+i*xs;if(t>xmax+1e-9)break;
+    const x=xOf(t);ctx.strokeStyle='#eef2f8';ctx.beginPath();ctx.moveTo(x,Tp);ctx.lineTo(x,Tp+ph);ctx.stroke();
+    ctx.fillStyle='#5b6b82';ctx.fillText(String(Math.round(t/6)/10),x,Tp+ph+8);
+  }
+  ctx.strokeStyle='#8795aa';ctx.lineWidth=2;ctx.strokeRect(L,Tp,pw,ph);
+  ctx.fillStyle='#14213d';ctx.font='bold 15px '+FONT;ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('시간 (분)',L+pw/2,h-6);
+  ctx.save();ctx.translate(16,Tp+ph/2);ctx.rotate(-Math.PI/2);ctx.textBaseline='top';ctx.fillText('온도 (°C)',0,-6);ctx.restore();
+  ctx.save();ctx.beginPath();ctx.rect(L,Tp,pw,ph);ctx.clip();
+  // 0 °C 기준선
+  if(0>=ymin&&0<=ymax){
+    ctx.setLineDash([8,6]);ctx.strokeStyle='#8795aa';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(L,yOf(0));ctx.lineTo(L+pw,yOf(0));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#5b6b82';ctx.font='14px '+FONT;ctx.textAlign='left';ctx.textBaseline='bottom';
+    ctx.fillText('0 °C (순수한 물의 어는점)',L+8,yOf(0)-4);
+  }
+  if(s){
+    const idx=S.idx||0;
+    // 용액의 어는점 표시
+    if(idx>=s.iKnee&&S.started){
+      const y=yOf(s.Tf0);
+      ctx.setLineDash([8,6]);ctx.strokeStyle='#c0262d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(L+pw,y);ctx.stroke();ctx.setLineDash([]);
+    }
+    // 곡선
+    ctx.strokeStyle='#1d5fd6';ctx.lineWidth=3;ctx.lineJoin='round';ctx.beginPath();
+    for(let i=0;i<=idx;i++){const x=xOf(s.t[i]),y=yOf(s.Td[i]);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    ctx.stroke();
+    // 현재 점
+    ctx.fillStyle='#1d5fd6';ctx.beginPath();ctx.arc(xOf(s.t[idx]),yOf(s.Td[idx]),5,0,6.2832);ctx.fill();
+  }
+  ctx.restore();
+  if(s){
+    const idx=S.idx||0;
+    if(idx>=s.iKnee&&S.started){
+      const y=yOf(s.Tf0),kx=xOf(s.t[s.iKnee]);
+      if(y>=Tp&&y<=Tp+ph){
+        ctx.fillStyle='#c0262d';ctx.font='bold 15px '+FONT;ctx.textAlign='right';ctx.textBaseline='bottom';
+        ctx.fillText('용액의 어는점 '+fT(S.finished?s.TfRec:s.Tf0)+' °C',L+pw-8,y-5);
+        if(kx>=L&&kx<=L+pw){ctx.fillStyle='#c0262d';ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(kx,y,6,0,6.2832);ctx.fill();ctx.stroke();}
+      }
+    }
+    if(s.sc>0&&idx>=s.iMin&&S.started){
+      const x=xOf(s.t[s.iMin]),y=yOf(s.T[s.iMin]);
+      if(x>L&&x<L+pw&&y>Tp&&y<Tp+ph){ctx.fillStyle='#b45309';ctx.font='bold 14px '+FONT;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('과냉각',x,y+8);}
+    }
+    // 마우스를 올렸을 때
+    if(chart.hover!==null&&chart.hover<=idx){
+      const i=chart.hover,x=xOf(s.t[i]),y=yOf(s.Td[i]);
+      ctx.strokeStyle='#14213d';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,Tp);ctx.lineTo(x,Tp+ph);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#14213d';ctx.beginPath();ctx.arc(x,y,5,0,6.2832);ctx.fill();
+      const txt=mmss(s.t[i])+' · '+fT(s.Td[i])+' °C';ctx.font='bold 15px '+FONT;
+      const tw=ctx.measureText(txt).width+16;let bx=x+12;if(bx+tw>L+pw)bx=x-12-tw;
+      let by=y-34;if(by<Tp+2)by=y+12;
+      ctx.fillStyle='#14213d';ctx.fillRect(bx,by,tw,26);ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(txt,bx+8,by+13);
+    }
+  }else{
+    ctx.fillStyle='#8795aa';ctx.font='17px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('온도계를 꽂고 냉각을 시작하면 냉각 곡선이 그려집니다.',L+pw/2,Tp+ph/2);
+  }
+}
+function hoverAt(clientX){
+  if(!S.sim||!chart.view)return;
+  const r=$('chart').getBoundingClientRect(),v=chart.view;
+  const t=v.xmin+(clientX-r.left-v.L)/v.pw*(v.xmax-v.xmin);
+  let i=Math.round(t/S.sim.dt);i=clamp(i,0,S.idx||0);chart.hover=i;drawChart();
+}
+
+/* ===== 4단계 제출 / 5단계 비교 ===== */
+function onMwInput(){syncUI();}
+function doSubmit(){
+  const v=parseFloat($('mwInput').value);
+  if(!(v>0)||!S.finished||S.submitted)return;
+  S.submitted=true;$('mwInput').readOnly=true;
+  renderResult(v);syncUI();goStep(5);
+}
+function renderResult(sub){
+  const a=S.sample,diff=sub-a.M,err=Math.abs(diff)/a.M*100;
+  let judge,cls;
+  if(err<=5){judge='매우 잘 구했어요! 오차율이 5 % 이하입니다.';cls='ok';}
+  else if(err<=10){judge='잘 구했어요. 오차율이 10 % 이하입니다.';cls='warn';}
+  else{judge='오차가 큽니다. 계산 과정과 단위를 다시 확인해 보세요.';cls='bad';}
+  const dep=-S.sim.TfRec,m=dep/KF,n=m*(WATER_G/1000),Mcalc=S.mass/n;
+  let near=0;CANDIDATES.forEach((c,i)=>{if(Math.abs(c.M-sub)<Math.abs(CANDIDATES[near].M-sub))near=i;});
+  const nm=$('stuName').value.trim();
+  let h='';
+  if(nm)h+='<p><b>이름:</b> '+nm.replace(/[<>&]/g,'')+'</p>';
+  h+='<div class="msg '+cls+'" style="font-size:20px;font-weight:700">'+judge+'</div>';
+  h+='<table class="t" style="max-width:760px"><tbody>'
+   +'<tr><th>처음에 제공한 물질</th><td>'+a.ko+' ('+a.en+') · '+fHtml(a.f)+' &nbsp;<span class="tag">시약병 '+S.code+'</span></td></tr>'
+   +'<tr class="ans"><th>제공한 물질의 분자량 (정답, g/mol)</th><td class="n big-result">'+a.M.toFixed(2)+'</td></tr>'
+   +'<tr class="hi"><th>학생이 제출한 분자량 (g/mol)</th><td class="n big-result">'+sub.toFixed(2)+'</td></tr>'
+   +'<tr><th>차이 (제출값 − 정답)</th><td class="n">'+(diff>=0?'+':'−')+Math.abs(diff).toFixed(2)+'</td></tr>'
+   +'<tr><th>오차율 (%)</th><td class="n">'+err.toFixed(1)+' %</td></tr></tbody></table>';
+  h+='<h3 style="margin:20px 0 6px">내가 측정한 값으로 계산해 보기</h3><div style="max-width:760px">'
+   +'<div class="formula">어는점 내림 ΔT<sub>f</sub> = 0 − ('+fT(S.sim.TfRec)+') = '+fT(dep)+' °C</div>'
+   +'<div class="formula">몰랄 농도 m = ΔT<sub>f</sub> ÷ K<sub>f</sub> = '+fT(dep)+' ÷ 1.86 = '+m.toFixed(3)+' mol/kg</div>'
+   +'<div class="formula">용질의 몰수 = m × 0.1 kg = '+n.toFixed(4)+' mol</div>'
+   +'<div class="formula">분자량 = '+fT(S.mass)+' g ÷ '+n.toFixed(4)+' mol = <b>'+Mcalc.toFixed(2)+' g/mol</b></div></div>';
+  h+='<h3 style="margin:20px 0 6px">시약 후보 물질과 비교</h3><div style="overflow-x:auto"><table class="t cand"><thead><tr><th>번호</th><th>물질</th><th>화학식</th><th>분자량 (g/mol)</th><th>표시</th></tr></thead><tbody>';
+  CANDIDATES.forEach((c,i)=>{
+    const isA=(c===a),isN=(i===near);
+    let tg='';if(isA)tg+='<span class="tag ans">정답</span> ';if(isN)tg+='<span class="tag near">제출값에 가장 가까움</span>';
+    h+='<tr class="'+(isA?'ans':(isN?'hi':''))+'"><td style="text-align:center">'+(i+1)+'</td><td>'+c.ko+' ('+c.en+')</td><td>'+fHtml(c.f)+'</td><td class="n">'+c.M.toFixed(2)+'</td><td>'+tg+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div class="row" style="margin-top:16px"><button class="btn big" id="btnNew">새 시료로 다시 하기</button><button class="btn sec" id="btnSame">같은 시료, 질량만 바꿔 다시</button><button class="btn sec" id="btnPrint">인쇄하기</button></div>';
+  $('result5').innerHTML=h;
+  $('btnNew').onclick=()=>fullReset(true);
+  $('btnSame').onclick=()=>redoSame();
+  $('btnPrint').onclick=()=>window.print();
+}
+
+/* ===== 초기화 ===== */
+function resetFromMass(keepTare){
+  S.locked=false;S.dissolved=false;S.thermIn=false;S.inBath=false;S.started=false;S.playing=false;S.finished=false;
+  S.sim=null;S.pos=0;S.idx=0;S.submitted=false;chart.hover=null;chart.zoom=false;
+  S.tared=!!keepTare;S.mass=0;
+  $('massInput').value=0;$('massSlider').value=0;
+  $('pile').classList.remove('melt');$('pdots').innerHTML='';
+  $('beakerG').style.transition='none';$('therm').style.transition='none';
+  $('beakerG').style.transform='translate(0px,-85px)';$('therm').style.transform='translate(0px,-40px)';$('therm').style.opacity='0';
+  void $('beakerG').getBoundingClientRect();
+  $('beakerG').style.transition='';$('therm').style.transition='';
+  $('slush').setAttribute('opacity','0');
+  for(let k=0;k<CR.length;k++){const e=$('cr'+k);if(e)e.setAttribute('opacity','0');}
+  mercury(25);$('roT').textContent='25.00 °C';$('roTime').textContent='0분 00초';
+  $('roState').className='msg';$('roState').textContent='먼저 [온도계 꽂고 냉각 장치에 넣기]를 누르세요.';
+  $('tMass').textContent='-';$('tTf').textContent='-';$('mwInput').value='';$('mwInput').readOnly=false;
+  $('msg4').hidden=true;$('btnRedo4').hidden=true;$('result5').innerHTML='';
+  $('msg2').className='msg';$('msg2').textContent=keepTare?'영점이 맞춰져 있습니다. 시료의 질량을 다시 정해 보세요.':'먼저 [영점 맞추기]를 눌러 주세요.';
+  $('btnZoom').classList.remove('on');
+  updateScale();drawChart();
+}
+function redoSame(){
+  resetFromMass(true);S.maxStep=2;updateStepper();syncUI();
+  setTimeout(()=>{$('s2').scrollIntoView({behavior:'smooth',block:'start'});},100);
+}
+function fullReset(auto){
+  S.sample=null;S.code='';S.maxStep=1;
+  $('bottleCode').textContent='K-???';$('bottleG').setAttribute('opacity','.35');
+  $('msg1').hidden=true;
+  resetFromMass(false);updateStepper();syncUI();
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(auto===true){setTimeout(prepBottle,350);}
+}
+
+/* ===== 버튼 상태 ===== */
+function syncUI(){
+  $('btnPrep').disabled=!!S.sample;
+  $('btnPrep').textContent=S.sample?'시약병 준비 완료':'시약병 준비하기';
+  $('btnTare').disabled=!S.sample||S.tared;
+  const off=!S.tared||S.locked;
+  $('massInput').disabled=off;$('massSlider').disabled=off;
+  document.querySelectorAll('[data-d]').forEach(b=>b.disabled=off);
+  $('btnDissolve').disabled=off||S.mass<1;
+  $('btnRemass').hidden=!(S.locked&&S.dissolved&&!S.started);
+  $('btnInsert').disabled=!(S.dissolved&&!S.thermIn);
+  $('btnStart').disabled=!(S.thermIn&&!S.started);
+  $('btnPause').disabled=!(S.started&&!S.finished);
+  $('btnPause').textContent=S.playing?'일시정지':'계속하기';
+  $('btnReplay').disabled=!S.finished;
+  document.querySelectorAll('[data-sp]').forEach(b=>b.classList.toggle('on',+b.dataset.sp===S.speed));
+  $('btnZoom').disabled=!S.sim;
+  $('btnZoom').classList.toggle('on',chart.zoom);
+  $('btnZoom').textContent=chart.zoom?'전체 보기':'어는점 부근 확대';
+  const ok=S.finished&&!S.submitted&&parseFloat($('mwInput').value)>0;
+  $('btnSubmit').disabled=!ok;
+  $('btnSubmit').textContent=S.submitted?'제출 완료':'제출하기';
+}
+
+/* ===== 교사용 설정 ===== */
+function initTeacher(){
+  const sel=$('cfgSample');
+  sel.innerHTML='<option value="-1">무작위 (기본)</option>'+CANDIDATES.map((c,i)=>'<option value="'+i+'">'+(i+1)+'. '+c.ko+' ('+c.M.toFixed(2)+')</option>').join('');
+  sel.value=String(CFG.sampleIdx);$('cfgSc').checked=!!CFG.supercool;$('cfgNoise').checked=!!CFG.noise;
+  $('btnPin').onclick=()=>{
+    if($('pin').value===TEACHER_PIN){$('tBody').hidden=false;$('tLock').hidden=true;}
+    else{$('pinMsg').textContent=' 비밀번호가 틀렸습니다.';}
+  };
+  $('pin').addEventListener('keydown',e=>{if(e.key==='Enter')$('btnPin').click();});
+  $('btnSaveCfg').onclick=()=>{
+    CFG.sampleIdx=parseInt($('cfgSample').value,10);CFG.supercool=$('cfgSc').checked;CFG.noise=$('cfgNoise').checked;
+    try{localStorage.setItem('fpd_cfg',JSON.stringify(CFG));$('cfgMsg').textContent=' 저장했습니다.';}
+    catch(e){$('cfgMsg').textContent=' 이 브라우저에서는 저장할 수 없어 이번 접속에만 적용됩니다.';}
+  };
+  $('btnShowAns').onclick=()=>{
+    $('cfgMsg').textContent=S.sample?(' '+S.code+' = '+S.sample.ko+' ('+S.sample.M.toFixed(2)+' g/mol)'):' 아직 시약병을 준비하지 않았습니다.';
+  };
+}
+
+/* ===== 이벤트 연결 및 시작 ===== */
+function init(){
+  buildBath();mercury(25);initTeacher();
+  $('btnPrep').onclick=prepBottle;
+  $('btnReset').onclick=()=>fullReset(false);
+  $('btnTare').onclick=doTare;
+  $('massSlider').addEventListener('input',e=>setMass(parseFloat(e.target.value),'slider'));
+  $('massInput').addEventListener('input',e=>{const v=parseFloat(e.target.value);setMass(isNaN(v)?0:v,'input');});
+  $('massInput').addEventListener('change',e=>setMass(parseFloat(e.target.value),'slider'));
+  document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>setMass(S.mass+parseFloat(b.dataset.d),'btn')));
+  $('btnDissolve').onclick=doDissolve;
+  $('btnRemass').onclick=()=>{resetFromMass(true);syncUI();};
+  $('btnInsert').onclick=doInsert;
+  $('btnStart').onclick=doStart;
+  $('btnPause').onclick=doPause;
+  $('btnReplay').onclick=doReplay;
+  document.querySelectorAll('[data-sp]').forEach(b=>b.addEventListener('click',()=>{S.speed=+b.dataset.sp;syncUI();}));
+  $('btnZoom').onclick=()=>{chart.zoom=!chart.zoom;syncUI();drawChart();};
+  $('mwInput').addEventListener('input',onMwInput);
+  $('mwInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSubmit();});
+  $('btnSubmit').onclick=doSubmit;
+  $('btnRedo4').onclick=redoSame;
+  const cv=$('chart');
+  cv.addEventListener('mousemove',e=>hoverAt(e.clientX));
+  cv.addEventListener('mouseleave',()=>{chart.hover=null;drawChart();});
+  cv.addEventListener('touchmove',e=>{if(e.touches[0])hoverAt(e.touches[0].clientX);},{passive:true});
+  window.addEventListener('resize',drawChart);
+  let last=0;
+  function frame(ts){
+    if(S.playing&&S.sim){
+      const d=Math.min(0.1,(ts-last)/1000);S.pos+=d*S.speed;
+      const maxPos=(S.sim.t.length-1)*S.sim.dt;
+      if(S.pos>=maxPos){S.pos=maxPos;S.playing=false;S.finished=true;refreshCooling();onFinished();}
+      else refreshCooling();
+    }
+    last=ts;requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  S.idx=0;updateStepper();updateScale();syncUI();drawChart();
+}
+init();
+</script>
+</body>
+</html>
